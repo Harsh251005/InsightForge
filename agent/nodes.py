@@ -1,11 +1,12 @@
 from agent.decomposer import decompose_query
 from tools.web_search import search_web
-from config.settings import settings
+from config.settings import Settings
 from agent.cleaner import clean_results, filter_relevant
 from openai import OpenAI
 from utils.prompt_loader import load_prompt
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
-client = OpenAI(api_key=settings.OPENAI_API_KEY)
+client = OpenAI(api_key=Settings.OPENAI_API_KEY)
 
 
 def decomposer_node(state):
@@ -14,11 +15,21 @@ def decomposer_node(state):
 
 
 def search_node(state):
+    queries = state["sub_queries"]
     all_results = []
 
-    for q in state["sub_queries"]:
-        results = search_web(q, settings.MAX_SEARCH_RESULTS)
-        all_results.extend(results)
+    with ThreadPoolExecutor(max_workers=Settings.MAX_WORKERS    ) as executor:
+        futures = [
+            executor.submit(search_web, q, Settings.MAX_SEARCH_RESULTS)
+            for q in queries
+        ]
+
+        for future in as_completed(futures):
+            try:
+                results = future.result()
+                all_results.extend(results)
+            except Exception as e:
+                print(f"Search failed: {e}")
 
     return {"results": all_results}
 
@@ -44,7 +55,7 @@ def report_node(state):
     )
 
     response = client.chat.completions.create(
-        model=settings.MODEL_NAME,
+        model=Settings.MODEL_NAME,
         messages=[{"role": "user", "content": prompt}],
     )
 
