@@ -1,5 +1,7 @@
 import streamlit as st
-from agent.simple_research import generate_report
+from agent.graph import build_graph
+
+graph = build_graph()
 
 st.title("InsightForge")
 
@@ -7,10 +9,10 @@ query = st.text_input("Enter your research topic:")
 
 if st.button("Research") and query:
     with st.spinner("Researching..."):
-        report, sources = generate_report(query)
+        result = graph.invoke({"query": query})
 
-    st.markdown(report)
+    st.markdown(result["report"])
 
     st.subheader("Sources")
-    for s in sources:
+    for s in result["filtered_results"]:
         st.write(f"- {s['title']} ({s['url']})")
