@@ -8,3 +8,8 @@ class ResearchState(TypedDict):
     results: List[Dict]
     filtered_results: List[Dict]
     report: str
+    sources: List[Dict]
+    iteration: int
+    need_more_research: bool
+    logs: List[str]
+    depth: str

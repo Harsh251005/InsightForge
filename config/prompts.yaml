@@ -1,19 +1,25 @@
 research_prompt: |
-  You are a research assistant.
+  You are a professional research assistant.
 
-  Based on the following information, generate a structured research report.
-
+  Based on the provided data, generate a detailed structured report.
   Query: {query}
 
   Data:
   {data}
 
+  Instructions:
+
+  - Use inline citations like [1], [2] wherever relevant
+  - Each citation number must correspond to a source
+  - Be clear, structured, and factual
+  
   Format:
+
   - Overview
   - Key Insights
   - Recent Developments
+  - Challenges
   - Conclusion
-  - Sources
 
 decompose_prompt: |
   You are an expert research planner.
@@ -55,3 +61,18 @@ ranking_prompt: |
   Give a score from 1 to 10.
 
   Only output a number.
+
+reflection_prompt: |
+  You are a research evaluator.
+
+  Query: {query}
+
+  Based on the collected information below, decide:
+
+  Do we have enough information to generate a complete and high-quality answer?
+
+  Data:
+  {data}
+
+  Answer ONLY:
+  YES or NO

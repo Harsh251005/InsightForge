@@ -14,5 +14,7 @@ class Settings:
     MAX_WORKERS: int = 5
     TOP_K_RESULTS: int = 8
 
+    DEFAULT_DEPTH: str = "basic"  # basic | deep
+
 
 settings = Settings()

@@ -1,9 +1,9 @@
 from typing import List, Dict
 from openai import OpenAI
-from config.settings import Settings
+from config.settings import settings
 from utils.prompt_loader import load_prompt
 
-client = OpenAI(api_key=Settings.OPENAI_API_KEY)
+client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
 
 def filter_relevant(results, query):
@@ -18,7 +18,7 @@ def filter_relevant(results, query):
         )
 
         response = client.chat.completions.create(
-            model=Settings.MODEL_NAME,
+            model=settings.MODEL_NAME,
             messages=[{"role": "user", "content": prompt}],
         )
 
@@ -68,7 +68,7 @@ def rank_results(results, query):
         )
 
         response = client.chat.completions.create(
-            model=Settings.MODEL_NAME,
+            model=settings.MODEL_NAME,
             messages=[{"role": "user", "content": prompt}],
         )
 

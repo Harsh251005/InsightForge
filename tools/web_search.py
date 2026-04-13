@@ -1,9 +1,9 @@
 from tavily import TavilyClient
-from config.settings import Settings
+from config.settings import settings
 
-tavily = TavilyClient(api_key=Settings.TAVILY_API_KEY)
+tavily = TavilyClient(api_key=settings.TAVILY_API_KEY)
 
-def search_web(query: str, max_results: int = Settings.MAX_SEARCH_RESULTS):
+def search_web(query: str, max_results: int = settings.MAX_SEARCH_RESULTS):
     response = tavily.search(query=query, max_results=max_results)
     results = []
 
