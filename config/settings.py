@@ -12,6 +12,7 @@ class Settings:
     MODEL_NAME: str = "gpt-4o-mini"
     MAX_SEARCH_RESULTS: int = 5
     MAX_WORKERS: int = 5
+    TOP_K_RESULTS: int = 8
 
 
 settings = Settings()

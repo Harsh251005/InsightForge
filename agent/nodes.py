@@ -1,7 +1,7 @@
 from agent.decomposer import decompose_query
 from tools.web_search import search_web
 from config.settings import Settings
-from agent.cleaner import clean_results, filter_relevant
+from agent.cleaner import clean_results, filter_relevant, rank_results
 from openai import OpenAI
 from utils.prompt_loader import load_prompt
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -60,3 +60,13 @@ def report_node(state):
     )
 
     return {"report": response.choices[0].message.content}
+
+
+def ranking_node(state):
+    cleaned = clean_results(state["results"])
+    ranked = rank_results(cleaned, state["query"])
+
+    # take top-k
+    top_results = ranked[:Settings.TOP_K_RESULTS]
+
+    return {"filtered_results": top_results}

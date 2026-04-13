@@ -54,3 +54,35 @@ def clean_results(results: List[Dict]) -> List[Dict]:
     results = deduplicate_results(results)
     results = trim_content(results)
     return results
+
+
+def rank_results(results, query):
+    prompt_template = load_prompt("ranking_prompt")
+
+    scored_results = []
+
+    for r in results:
+        prompt = prompt_template.format(
+            query=query,
+            content=r.get("content", "")
+        )
+
+        response = client.chat.completions.create(
+            model=Settings.MODEL_NAME,
+            messages=[{"role": "user", "content": prompt}],
+        )
+
+        score_text = response.choices[0].message.content.strip()
+
+        try:
+            score = float(score_text)
+        except:
+            score = 0
+
+        r["score"] = score
+        scored_results.append(r)
+
+    # sort by score descending
+    scored_results.sort(key=lambda x: x["score"], reverse=True)
+
+    return scored_results

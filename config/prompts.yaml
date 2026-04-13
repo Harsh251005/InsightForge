@@ -41,3 +41,17 @@ filter_prompt: |
 
   Answer ONLY with:
   YES or NO
+
+ranking_prompt: |
+  You are a relevance scoring system.
+
+  Query: {query}
+
+  Evaluate how relevant the following content is for answering the query.
+
+  Content:
+  {content}
+
+  Give a score from 1 to 10.
+
+  Only output a number.
