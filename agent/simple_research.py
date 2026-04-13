@@ -3,6 +3,7 @@ from agent.decomposer import decompose_query
 from openai import OpenAI
 from config.settings import settings
 from utils.prompt_loader import load_prompt
+from agent.cleaner import clean_results, filter_relevant
 
 client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
@@ -17,8 +18,12 @@ def generate_report(query: str):
         results = search_web(q, settings.MAX_SEARCH_RESULTS)
         all_results.extend(results)
 
-    # optional: limit size
     all_results = all_results[:10]
+
+    all_results = clean_results(all_results)
+    all_results = filter_relevant(all_results, query)
+
+    all_results = all_results[:8]
 
     combined_text = "\n\n".join(
         [f"{r['title']}\n{r['content']}" for r in all_results]

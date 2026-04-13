@@ -28,3 +28,16 @@ decompose_prompt: |
   - Keep them concise and search-friendly
 
   Output as a numbered list.
+
+filter_prompt: |
+  You are a relevance filter.
+
+  Query: {query}
+
+  Decide whether the following content is useful for answering the query.
+
+  Content:
+  {content}
+
+  Answer ONLY with:
+  YES or NO
