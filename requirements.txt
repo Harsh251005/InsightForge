@@ -4,3 +4,4 @@ tavily-python
 streamlit
 python-dotenv
 pyyaml
+reportlab

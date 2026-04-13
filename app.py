@@ -1,5 +1,11 @@
+import os
+import tempfile
+
 import streamlit as st
+
 from agent.graph import build_graph
+from utils.cache import get_cached_result, set_cached_result
+from utils.pdf_export import generate_pdf
 
 # ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -15,22 +21,22 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-    --bg:        #0e0d0b;
-    --surface:   #161411;
-    --surface-2: #1d1a16;
-    --border:    #2a2520;
-    --border-2:  #332e28;
-    --ink:       #f0ece4;
-    --ink-2:     #a8a098;
-    --ink-3:     #5a5450;
-    --accent:    #d4581a;
-    --accent-dim: rgba(212, 88, 26, 0.12);
+    --bg:          #0e0d0b;
+    --surface:     #161411;
+    --surface-2:   #1d1a16;
+    --border:      #2a2520;
+    --border-2:    #332e28;
+    --ink:         #f0ece4;
+    --ink-2:       #a8a098;
+    --ink-3:       #5a5450;
+    --accent:      #d4581a;
+    --accent-dim:  rgba(212, 88, 26, 0.12);
     --accent-glow: rgba(212, 88, 26, 0.06);
-    --green:     #3ab870;
-    --green-dim: rgba(58, 184, 112, 0.12);
-    --mono:      'JetBrains Mono', monospace;
-    --serif:     'Instrument Serif', Georgia, serif;
-    --sans:      'Outfit', sans-serif;
+    --green:       #3ab870;
+    --green-dim:   rgba(58, 184, 112, 0.12);
+    --mono:        'JetBrains Mono', monospace;
+    --serif:       'Instrument Serif', Georgia, serif;
+    --sans:        'Outfit', sans-serif;
 }
 
 /* ── Base ── */
@@ -101,16 +107,13 @@ html, body,
 
 [data-testid="stSelectbox"] svg { fill: var(--ink-3) !important; }
 
-/* selectbox dropdown */
 [data-baseweb="popover"] {
     background: var(--surface-2) !important;
     border: 1px solid var(--border-2) !important;
     border-radius: 8px !important;
 }
 
-[data-baseweb="menu"] {
-    background: var(--surface-2) !important;
-}
+[data-baseweb="menu"] { background: var(--surface-2) !important; }
 
 [role="option"] {
     background: var(--surface-2) !important;
@@ -118,34 +121,52 @@ html, body,
     font-family: var(--sans) !important;
 }
 
-[role="option"]:hover {
-    background: var(--border) !important;
-}
+[role="option"]:hover { background: var(--border) !important; }
 
-/* ── Button ── */
-[data-testid="stButton"] > button {
-    background: var(--accent) !important;
-    color: #fff !important;
-    border: none !important;
+/* ── Buttons (shared) ── */
+[data-testid="stButton"] > button,
+[data-testid="stDownloadButton"] > button {
     border-radius: 8px !important;
     font-family: var(--sans) !important;
     font-weight: 600 !important;
-    font-size: 0.9rem !important;
-    letter-spacing: 0.04em !important;
-    padding: 0.72rem 1.6rem !important;
-    width: 100% !important;
+    font-size: 0.88rem !important;
+    letter-spacing: 0.03em !important;
     cursor: pointer !important;
     transition: filter 0.15s, transform 0.1s !important;
+    border: none !important;
+}
+
+/* Run button */
+[data-testid="stButton"] > button {
+    background: var(--accent) !important;
+    color: #fff !important;
+    padding: 0.72rem 1.6rem !important;
+    width: 100% !important;
 }
 
 [data-testid="stButton"] > button:hover {
-    filter: brightness(1.1) !important;
+    filter: brightness(1.12) !important;
     transform: translateY(-1px) !important;
 }
 
 [data-testid="stButton"] > button:active {
     transform: translateY(0) !important;
     filter: brightness(0.95) !important;
+}
+
+/* Download buttons */
+[data-testid="stDownloadButton"] > button {
+    background: var(--surface-2) !important;
+    color: var(--ink-2) !important;
+    border: 1px solid var(--border-2) !important;
+    padding: 0.6rem 1.1rem !important;
+    width: 100% !important;
+}
+
+[data-testid="stDownloadButton"] > button:hover {
+    border-color: var(--accent) !important;
+    color: var(--ink) !important;
+    transform: translateY(-1px) !important;
 }
 
 /* ── Scrollbar ── */
@@ -157,7 +178,7 @@ html, body,
 """, unsafe_allow_html=True)
 
 
-# ── Helpers ────────────────────────────────────────────────────────────────────
+# ── HTML helpers ───────────────────────────────────────────────────────────────
 
 def _log_html(logs: list[str], live: bool) -> str:
     if not logs:
@@ -286,7 +307,7 @@ def _sources_html(sources: list[dict]) -> str:
 
     return f"""
 <div style="background:var(--surface);border:1px solid var(--border-2);
-            border-radius:10px;padding:1.6rem 1.8rem;">
+            border-radius:10px;padding:1.6rem 1.8rem;margin-bottom:1.6rem;">
     <p style="font-family:var(--sans);font-size:0.72rem;font-weight:600;
               letter-spacing:0.07em;text-transform:uppercase;
               color:var(--ink-3);margin:0 0 0.3rem;">Sources</p>
@@ -351,33 +372,104 @@ if run and query:
     log_ph    = st.empty()
     report_ph = st.empty()
     src_ph    = st.empty()
+    export_ph = st.container()   # FIX: container holds multiple widgets, empty() does not
 
     logs: list[str] = []
     final_state = None
 
-    with st.spinner(""):
-        for step in graph.stream({
-            "query":     query,
-            "logs":      [],
-            "iteration": 0,
-            "depth":     depth,
-        }):
-            for _, state in step.items():
-                final_state = state
-                if "logs" in state:
-                    logs = state["logs"]
-                log_ph.markdown(_log_html(logs, live=True), unsafe_allow_html=True)
+    cached = get_cached_result(query, depth)
 
-    log_ph.markdown(_log_html(logs, live=False), unsafe_allow_html=True)
+    if cached:
+        final_state = cached
+        logs = final_state.get("logs", [])
+        log_ph.markdown(_log_html(logs, live=False), unsafe_allow_html=True)
+        st.toast("⚡ Loaded from cache")  # FIX: non-intrusive, doesn't break layout
 
+    else:
+        with st.spinner(""):
+            for step in graph.stream({
+                "query":     query,
+                "logs":      [],
+                "iteration": 0,
+                "depth":     depth,
+            }):
+                for _, state in step.items():
+                    final_state = state
+                    if "logs" in state:
+                        logs = state["logs"]
+                    log_ph.markdown(_log_html(logs, live=True), unsafe_allow_html=True)
+
+        log_ph.markdown(_log_html(logs, live=False), unsafe_allow_html=True)
+
+        if final_state:
+            set_cached_result(query, depth, final_state)
+
+    # ── Output ────────────────────────────────────────────────────────────────
     if final_state:
         if final_state.get("report"):
             report_ph.markdown(
                 _report_html(final_state["report"]),
                 unsafe_allow_html=True,
             )
+
         if final_state.get("sources"):
             src_ph.markdown(
                 _sources_html(final_state["sources"]),
                 unsafe_allow_html=True,
             )
+
+        # ── Export ────────────────────────────────────────────────────────────
+        report_text = f"# Research Report\n\n{final_state.get('report', '')}\n\n## Sources\n"
+        for s in final_state.get("sources", []):
+            report_text += f"[{s['id']}] {s['title']} - {s['url']}\n"
+
+        # FIX: generate PDF safely — temp file always cleaned up
+        pdf_bytes = None
+        tmp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+                tmp_path = tmp_file.name
+            generate_pdf(
+                final_state.get("report", ""),
+                final_state.get("sources", []),
+                tmp_path,
+            )
+            with open(tmp_path, "rb") as f:
+                pdf_bytes = f.read()
+        finally:
+            if tmp_path and os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+
+        with export_ph:
+            st.markdown(
+                "<p style='font-family:var(--sans);font-size:0.72rem;font-weight:600;"
+                "letter-spacing:0.07em;text-transform:uppercase;color:var(--ink-3);"
+                "margin:0 0 0.7rem;'>Export Report</p>",
+                unsafe_allow_html=True,
+            )
+            col_md, col_txt, col_pdf = st.columns(3)
+            with col_md:
+                st.download_button(
+                    label="↓ Markdown",
+                    data=report_text,
+                    file_name="insightforge_report.md",
+                    mime="text/markdown",
+                    use_container_width=True,
+                )
+            with col_txt:
+                st.download_button(
+                    label="↓ Plain text",
+                    data=report_text,
+                    file_name="insightforge_report.txt",
+                    mime="text/plain",
+                    use_container_width=True,
+                )
+            with col_pdf:
+                if pdf_bytes:
+                    st.download_button(
+                        label="↓ PDF",
+                        data=pdf_bytes,
+                        file_name="insightforge_report.pdf",
+                        mime="application/pdf",
+                        use_container_width=True,
+                    )
