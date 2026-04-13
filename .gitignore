@@ -1,0 +1,93 @@
+# Byte-compiled / optimized / DLL files
+
+**pycache**/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+
+.venv/
+venv/
+env/
+ENV/
+
+# uv specific
+
+.uv/
+uv.lock
+
+# Distribution / packaging
+
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Logs
+
+*.log
+
+# OS files
+
+.DS_Store
+Thumbs.db
+
+# IDEs / Editors
+
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment variables
+
+.env
+.env.*
+!.env.example
+
+# Jupyter Notebook checkpoints
+
+.ipynb_checkpoints/
+
+# Streamlit
+
+.streamlit/
+
+# Cache
+
+.cache/
+
+# Coverage / testing
+
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/
+
+# MyPy / type check
+
+.mypy_cache/
+
+# Temporary files
+
+*.tmp
+*.bak
+*.rej
+
+# SQLite DB (if used later)
+
+*.db
+
+# Mac system files
+
+.AppleDouble
+.LSOverride
+
+# Python packaging
+
+pip-wheel-metadata/
+
+# Runtime files
+
+*.pid
+*.seed
