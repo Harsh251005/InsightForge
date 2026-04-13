@@ -14,3 +14,17 @@ research_prompt: |
   - Recent Developments
   - Conclusion
   - Sources
+
+decompose_prompt: |
+  You are an expert research planner.
+
+  Break the following query into 4-6 focused sub-queries that together cover the topic comprehensively.
+
+  Query: {query}
+
+  Rules:
+  - Each sub-query should target a different aspect
+  - Avoid repetition
+  - Keep them concise and search-friendly
+
+  Output as a numbered list.
