@@ -1,0 +1,16 @@
+research_prompt: |
+  You are a research assistant.
+
+  Based on the following information, generate a structured research report.
+
+  Query: {query}
+
+  Data:
+  {data}
+
+  Format:
+  - Overview
+  - Key Insights
+  - Recent Developments
+  - Conclusion
+  - Sources
